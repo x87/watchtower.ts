@@ -1,9 +1,10 @@
 import { field, ptr } from "./common";
-import { opcodes } from "./crunningscript";
-import { opcode } from "./disasm";
+import { opcodes } from "./disasm";
+import { CMissionCleanup, findMission, getOnMissionFlag, instapass } from "./mission";
 
 export enum Tabs {
   Scripts = "Scripts",
+  Mission = "Mission",
   Vehicle = "Vehicle",
   Pools = "Pools",
 }
@@ -16,7 +17,7 @@ export class Window {
   visible: boolean = true;
   showEmptyPoolElems = false;
 
-  constructor(readonly tabs = [Tabs.Scripts, Tabs.Vehicle, Tabs.Pools]) {}
+  constructor(readonly tabs = Object.values(Tabs)) {}
 
   identifier(name, uniqueId = this.id) {
     if (name.includes("##")) return name;
@@ -67,10 +68,19 @@ export class Window {
 
     ImGui.Separator();
     this.label("Next 3 instructions:");
-    this.renderStruct(opcode(field(struct, "ip"))); 
+    try {
+      let next3ops = opcodes(field(struct, "ip"), 3);
+      this.renderStruct(next3ops);
+    } catch (e) {
+      this.label("Failed to disassemble instructions: " + e.toString());
+    }
+
+    // if (field(struct, "is mission")) {
+
+    // }
   }
 
-  renderPool(struct, poolName) {
+  renderPool(struct, poolName: string) {
     if (this.button(`Expand##${poolName}`)) {
       this.activePool = poolName;
     }
@@ -79,5 +89,22 @@ export class Window {
       ImGui.SameLine();
       ImGui.Text(value.toString());
     });
+  }
+
+  renderMission() {
+    this.label("Mission Cleanup List");
+    this.renderStruct(CMissionCleanup(0x00a90850));
+    ImGui.Separator();
+    this.renderStruct([["$ONMISSION", getOnMissionFlag()]]);
+    let mission = findMission();
+    if (mission) {
+      if (this.button("Instapass", 80)) {
+        try {
+          instapass(mission);
+        } catch (e) {
+          log("Instapass failed: ", e);
+        }
+      }
+    }
   }
 }

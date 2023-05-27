@@ -26,12 +26,24 @@ export function dword(p: number) {
   return Memory.ReadU32(p, false);
 }
 
+export function int32(p: number) {
+  return Memory.ReadI32(p, false);
+}
+
 export function word(p: number) {
   return Memory.ReadU16(p, false);
 }
 
+export function int16(p: number) {
+  return Memory.ReadI16(p, false);
+}
+
 export function byte(p: number) {
   return Memory.ReadU8(p, false);
+}
+
+export function int8(p: number) {
+  return Memory.ReadI8(p, false);
 }
 
 export function bool(p: number) {
@@ -54,17 +66,15 @@ export function field(struct, path: string) {
   const parts = path.split(".");
 
   let cur = parts.shift();
-  let res = struct;
 
   while (cur) {
-    for (const [n, v] of res) {
-      if (n === cur) {
-        res = v;
-        break;
+    for (const [name, value] of struct) {
+      if (name === cur) {
+        return value;
       }
     }
     cur = parts.shift();
   }
 
-  return res;
+  throw new Error(`field ${path} not found`);
 }

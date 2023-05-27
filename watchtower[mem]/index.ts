@@ -5,7 +5,8 @@ import { CRunningScript } from "./crunningscript";
 import { Tabs, Window } from "./window";
 import { CVehicle } from "./cvehicle";
 import { CPool, CPoolExpanded } from "./cpool";
-import { ptr } from "./common";
+import { field, ptr } from "./common";
+import { CMissionCleanup, findMission, getOnMissionFlag, instapass } from "./mission";
 
 let p = new Player(0);
 let char = p.getChar();
@@ -16,8 +17,9 @@ while (true) {
   ImGui.BeginFrame("WatchTower");
   ImGui.SetCursorVisible(true);
 
-  windows.forEach((w) => {
+  windows.forEach((w, i) => {
     ImGui.SetNextWindowSize(400, 600, ImGuiCond.FirstUseEver);
+    ImGui.SetNextWindowPos(10 + i * 50, 10, ImGuiCond.FirstUseEver);
     w.visible = ImGui.Begin(w.identifier("WatchTower"), w.visible, false, false, false, false);
 
     let tab = ImGui.Tabs(w.identifier("Tabs"), w.tabs.join(","));
@@ -26,8 +28,16 @@ while (true) {
     switch (tabName) {
       case Tabs.Scripts: {
         if (w.activeScript) {
-          w.renderScript(CRunningScript(w.activeScript));
+          let script = CRunningScript(w.activeScript);
+          if (!field(script, "active")) {
+            script = CRunningScript(ptr(0x00a8b42c));
+          }
+          w.renderScript(script);
         }
+        break;
+      }
+      case Tabs.Mission: {
+        w.renderMission();
         break;
       }
       case Tabs.Vehicle: {
@@ -41,7 +51,7 @@ while (true) {
         break;
       }
       case Tabs.Pools: {
-        let pools = [
+        let pools: Array<[string, number, unknown]> = [
           ["PedPool", ptr(0x00b74490), PedPool],
           ["VehiclePool", ptr(0x00b74494), VehiclePool],
           ["ObjectPool", ptr(0x00b7449c), ObjectPool],
